@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #000 url('https://assets.sterflix.com/assets/Sterflix-Backround.jpg') center/cover no-repeat fixed;
+            background: #000 url('https://epicspider687.github.io/Sterflix-Assets/assets/Sterflix-Backround.jpg') center/cover no-repeat fixed;
             color: white;
             padding: 40px 20px;
             min-height: 100vh;
@@ -67,12 +67,6 @@
             padding: 15px;
             text-align: center;
             transition: transform 0.3s ease;
-            animation: fadeIn 0.5s ease forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .asset-card:hover { transform: translateY(-5px); border-color: #9d2bb3; }
@@ -90,10 +84,7 @@
         }
 
         .preview-box img { max-width: 90%; max-height: 90%; object-fit: contain; }
-        
-        /* Icon for non-image files */
         .file-icon { font-size: 3rem; opacity: 0.5; }
-
         .asset-name { font-size: 0.85rem; color: #ccc; margin-bottom: 10px; word-break: break-all; height: 2.5rem; overflow: hidden; }
 
         .copy-link {
@@ -106,10 +97,8 @@
             font-weight: bold;
             cursor: pointer;
             width: 100%;
-            transition: opacity 0.2s;
         }
 
-        .copy-link:hover { opacity: 0.9; }
         .loading { text-align: center; font-size: 1.2rem; opacity: 0.7; grid-column: 1/-1; padding: 50px; }
     </style>
 </head>
@@ -121,64 +110,58 @@
     </div>
 
     <div class="asset-grid" id="asset-grid">
-        <div class="loading">Fetching assets...</div>
+        <div class="loading">Connectng to GitHub...</div>
     </div>
 
     <script>
-        // CONFIGURATION: Change these to match your GitHub repo
-        const USERNAME = 'YOUR_GITHUB_USERNAME'; 
-        const REPO = 'YOUR_REPO_NAME';
+        // Updated CONFIG
+        const USERNAME = 'EpicSpider687'; 
+        const REPO = 'Sterflix-Assets';
         const FOLDER_PATH = 'assets'; 
 
         async function fetchAssets() {
             const grid = document.getElementById('asset-grid');
             try {
-                // GitHub API URL to list folder contents
-                const response = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FOLDER_PATH}`);
-                const files = await response.json();
+                // If FOLDER_PATH is empty, it fetches root. If not, it fetches the folder.
+                const path = FOLDER_PATH ? `/${FOLDER_PATH}` : '';
+                const response = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents${path}`);
+                
+                if (!response.ok) throw new Error("Folder not found or API Limit reached.");
 
-                grid.innerHTML = ''; // Clear loading message
+                const files = await response.json();
+                grid.innerHTML = ''; 
 
                 files.forEach(file => {
+                    // Ignore index.html and non-files
                     if (file.type === 'file' && file.name !== 'index.html') {
                         const isImage = /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name);
-                        const rawUrl = `https://${USERNAME}.github.io/${REPO}/${FOLDER_PATH}/${file.name}`;
+                        
+                        // GitHub Pages URL Construction
+                        const rawUrl = `https://${USERNAME.github.io}/${REPO}/${FOLDER_PATH}/${file.name}`.replace('//assets', '/assets');
 
                         const card = document.createElement('div');
                         card.className = 'asset-card';
                         card.innerHTML = `
                             <div class="preview-box">
-                                ${isImage ? `<img src="${rawUrl}" loading="lazy">` : `<span class="file-icon">📄</span>`}
+                                ${isImage ? `<img src="${file.download_url}" loading="lazy">` : `<span class="file-icon">📄</span>`}
                             </div>
                             <p class="asset-name">${file.name}</p>
-                            <button class="copy-link" onclick="copyUrl('${rawUrl}', this)">Copy Direct URL</button>
+                            <button class="copy-link" onclick="copyUrl('${rawUrl}', this)">Copy URL</button>
                         `;
                         grid.appendChild(card);
                     }
                 });
             } catch (error) {
-                grid.innerHTML = `<div class="loading">Error loading assets. Check your username/repo config.</div>`;
+                grid.innerHTML = `<div class="loading">Error: ${error.message}<br><small>Make sure the folder "${FOLDER_PATH}" exists in the repo.</small></div>`;
             }
         }
 
         function copyUrl(url, btn) {
             navigator.clipboard.writeText(url);
-            const originalText = btn.innerText;
+            const oldText = btn.innerText;
             btn.innerText = "Copied!";
-            btn.style.background = "#28a745";
-            setTimeout(() => { 
-                btn.innerText = originalText; 
-                btn.style.background = ""; 
-            }, 1500);
+            setTimeout(() => btn.innerText = oldText, 1500);
         }
-
-        document.getElementById('search').addEventListener('input', function(e) {
-            let term = e.target.value.toLowerCase();
-            document.querySelectorAll('.asset-card').forEach(card => {
-                let name = card.querySelector('.asset-name').innerText.toLowerCase();
-                card.style.display = name.includes(term) ? 'block' : 'none';
-            });
-        });
 
         fetchAssets();
     </script>
